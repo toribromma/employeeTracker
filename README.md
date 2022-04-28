@@ -1,6 +1,6 @@
 # employeeTracker
 
-## How to start
+### How to start
 
 * git clone
 * go into bash or command from folder

@@ -1,12 +1,11 @@
 # employeeTracker
 
-How to start
-=============
+## How to start
 
-   Markup : * git clone
-            * go into bash or command from folder
-            * type in "node server"
-            * have fun
+* git clone
+* go into bash or command from folder
+* type in "node server"
+* have fun
              
 
 

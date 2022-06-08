@@ -2,7 +2,23 @@ DROP DATABASE IF EXISTS employee_trackDB;
 
 CREATE DATABASE employee_trackDB;
 
-USE employee_trackDB
+USE employee_trackDB;
+
+CREATE TABLE `department` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(30) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `role` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(30) DEFAULT NULL,
+  `salary` decimal(10,2) DEFAULT NULL,
+  `department_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `department_id` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=u
+tf8mb4_0900_ai_ci;
 
 CREATE TABLE `employee` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -11,26 +27,9 @@ CREATE TABLE `employee` (
   `role_id` int DEFAULT NULL,
   `manager_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
-  CONSTRAINT `manager_id` FOREIGN KEY (`id`) REFERENCES `role` (`id`),
-  CONSTRAINT `role_id` FOREIGN KEY (`id`) REFERENCES `role` (`id`)
+  CONSTRAINT `manager_id` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`)
+  -- CONSTRAINT `role_id` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE `department` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(30) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-
-CREATE TABLE `role` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `title` varchar(30) DEFAULT NULL,
-  `salary` decimal(10,2) DEFAULT NULL,
-  `department_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `department_id` FOREIGN KEY (`id`) REFERENCES `department` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
 
 
 -- ### Alternative way to insert more than one row
@@ -44,12 +43,10 @@ INSERT INTO role (title, salary, department_id)
 Values ("Sales Lead", 100000, 1);
 INSERT INTO role (title, salary, department_id) 
 Values ("Sales Person", 80000, 1);
-INSERT INTO role (title, salary, department_id) 
-Values ("Sales Person", 80000, 1);
+
 
 INSERT INTO role (title, salary, department_id) 
 Values ("Lead Engineer", 150000, 2);
-
 
 INSERT INTO role (title, salary, department_id) 
 Values ("Software Engineer", 100000, 2);

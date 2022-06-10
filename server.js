@@ -31,6 +31,7 @@ pickOptions = [
   "Remove Role",
   "Add Department",
   "Remove Department",
+  "View All Departments",
   "Exit",
 ];
 
@@ -41,11 +42,10 @@ async function runSearch() {
     message: "What would you like to do?",
     choices: [...pickOptions],
   });
-  // .then(function (answer) {
+
   switch (answer.options) {
     case "Add Employee":
       await getNewEmployee();
-
       break;
 
     case "View All Employees by Department":
@@ -96,17 +96,22 @@ async function runSearch() {
       runSearch();
       break;
 
-    // case "Add Department":
-    //   value = await addDepartment();
-    //   console.log(value.department);
-    //   insertDepartment(value.department);
-    //   break;
+    case "Add Department":
+      value = await addDepartment();
+      console.log(value);
+      insertDepartment(value.department);
+      break;
 
+    case "View All Departments":
+      viewAllDepartments();
+      break;
     // case "Add Role":
     //   const newRole = await getRole();
     //   console.log(newRole);
     //   await addRole(newRole);
     //   break;
+    case "Exit":
+      process.exit();
   }
   // });
 }
@@ -141,6 +146,16 @@ async function getNewEmployee() {
 //       message: "What department does this role belong to?",
 //     },
 //   ]);
+// }
+
+// async function addRole(roleInfo) {
+//   let departmentId = await getDepartmentId(roleInfo.department);
+
+//   let query = "INSERT into role (title, salary, department_id) VALUES (?,?,?)";
+//   let args = [roleInfo.title, parseInt(roleInfo.salary), departmentId];
+//   const rows = await connection.query(query, args);
+//   console.log(`added role ${roleInfo.title}, ${roleInfo.salary}`);
+//   runSearch();
 // }
 
 // async function getRoleId(roleName) {
@@ -264,39 +279,37 @@ async function viewAllEmployeesByDepartment() {
   });
 }
 
-// async function viewAllDepartments() {
-//   query = `
-//     SELECT name from department
-//     `;
-//   rows = await connection.query(query);
-//   department = [];
-//   for (const name of rows) {
-//     department.push(name.name);
-//   }
+async function viewAllDepartments() {
+  query = `
+    SELECT name from department
+    `;
 
-//   var uniqueDepartment = [...new Set(department)];
+  new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      resolve(console.table(res));
+      runSearch();
+    });
+  });
+}
 
-//   return uniqueDepartment;
-// }
+async function addDepartment() {
+  value = await inquirer.prompt({
+    type: "input",
+    name: "department",
+    message: "What is the name of the department you wish to add?",
+  });
+  return value;
+}
 
-// async function addDepartment() {
-//   value = await inquirer.prompt({
-//     type: "input",
-//     name: "department",
-//     message: "What is the name of the department you wish to add?",
-//   });
-//   return value;
-// }
+async function insertDepartment(value) {
+  query = "INSERT INTO department(name) VALUES(?)";
 
-// async function insertDepartment(value) {
-//   query = "INSERT INTO department(name) VALUES(?)";
-
-//   connection.query(query, value, function (err, res) {
-//     if (err) throw err;
-//     console.log(res);
-//   });
-//   runSearch();
-// }
+  connection.query(query, value, function (err, res) {
+    if (err) throw err;
+    // console.log(res);
+  });
+  runSearch();
+}
 
 async function addEmployee(managers, roles) {
   // console.log(managers)
@@ -359,7 +372,7 @@ async function addEmployee(managers, roles) {
     },
   ]);
 
-  console.log(employee);
+  // console.log(employee);
 
   var roleId = roleIdArray[rolesArray.indexOf(employee.title)];
   var managerId = managerIdArrays[managersArray.indexOf(employee.manager)];
@@ -375,15 +388,7 @@ async function addEmployee(managers, roles) {
   runSearch();
 }
 
-// async function addRole(roleInfo) {
-//   let departmentId = await getDepartmentId(roleInfo.department);
 
-//   let query = "INSERT into role (title, salary, department_id) VALUES (?,?,?)";
-//   let args = [roleInfo.title, parseInt(roleInfo.salary), departmentId];
-//   const rows = await connection.query(query, args);
-//   console.log(`added role ${roleInfo.title}, ${roleInfo.salary}`);
-//   runSearch();
-// }
 
 // async function viewEmployee() {
 //   query = `

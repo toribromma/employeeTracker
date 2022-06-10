@@ -14,9 +14,9 @@ const connection = mysql.createConnection({
   database: process.env.DB_NAME,
 });
 
-let filteredManagers = [];
-let filteredManagerId = [];
-let rolesAndRolesIDs = [];
+// let filteredManagers = [];
+// let filteredManagerId = [];
+// let rolesAndRolesIDs = [];
 
 pickOptions = [
   "View All Employees",
@@ -34,126 +34,91 @@ pickOptions = [
   "Exit",
 ];
 
-function runSearch() {
-  inquirer
-    .prompt({
-      name: "options",
-      type: "list",
-      message: "What would you like to do?",
-      choices: [...pickOptions],
-    })
-    .then(function (answer) {
-      switch (answer.options) {
-        case "Add Employee":
-          getNewEmployee();
-          break;
+async function runSearch() {
+  var answer = await inquirer.prompt({
+    name: "options",
+    type: "list",
+    message: "What would you like to do?",
+    choices: [...pickOptions],
+  });
+  // .then(function (answer) {
+  switch (answer.options) {
+    case "Add Employee":
+      await getNewEmployee();
 
-        // case "View All Employees by Department":
-        //   await viewAllEmployeesByDepartment();
-        //   break;
+      break;
 
-        // case "Remove Employee":
-        //   console.log("In progress...");
-        //   break;
+    case "View All Employees by Department":
+      await viewAllEmployeesByDepartment();
+      break;
 
-        // case "View All Employees by Manager":
-        //   console.log("In progress...");
-        //   break;
+    // case "Remove Employee":
+    //   console.log("In progress...");
+    //   break;
 
-        // case "Update Employee Role":
-        //   updatedEmployee = await getUpdateEmployeeRole();
-        //   updateEmployeeRole(updatedEmployee);
-        //   break;
+    // case "View All Employees by Manager":
+    //   console.log("In progress...");
+    //   break;
 
-        // case "Update Employee Manager":
-        //   console.log("In progress...");
-        //   break;
+    // case "Update Employee Role":
+    //   updatedEmployee = await getUpdateEmployeeRole();
+    //   updateEmployeeRole(updatedEmployee);
+    //   break;
 
-        // case "Remove Role":
-        //   console.log("In progress...");
-        //   break;
+    // case "Update Employee Manager":
+    //   console.log("In progress...");
+    //   break;
 
-        // case "Remove Department":
-        //   console.log("In progress...");
-        //   break;
+    // case "Remove Role":
+    //   console.log("In progress...");
+    //   break;
 
-        // case "View All Employees":
-        //   await viewAllEmployees();
-        //   break;
+    // case "Remove Department":
+    //   console.log("In progress...");
+    //   break;
 
-        // case "View All Employees by Department":
-        //   await viewAllEmployeesByDepartment();
-        //   break;
+    case "View All Employees":
+      await viewAllEmployees();
+      break;
 
-        // case "View All Roles":
-        //   roles = await viewAllRoles();
-        //   console.table(...roles);
-        //   break;
+    case "View All Employees by Department":
+      await viewAllEmployeesByDepartment();
+      break;
 
-        // case "Add Department":
-        //   value = await addDepartment();
-        //   console.log(value.department);
-        //   insertDepartment(value.department);
-        //   break;
+    case "View All Roles":
+      var roles = await viewAllRoles();
+      var rolesArray = [];
+      roles.forEach((element) => {
+        elementObject = { Role: element.title };
+        rolesArray.push(elementObject);
+      });
+      console.table(rolesArray);
+      runSearch();
+      break;
 
-        // case "Add Role":
-        //   const newRole = await getRole();
-        //   console.log(newRole);
-        //   await addRole(newRole);
-        //   break;
-      }
-    });
+    // case "Add Department":
+    //   value = await addDepartment();
+    //   console.log(value.department);
+    //   insertDepartment(value.department);
+    //   break;
+
+    // case "Add Role":
+    //   const newRole = await getRole();
+    //   console.log(newRole);
+    //   await addRole(newRole);
+    //   break;
+  }
+  // });
 }
 
-function getNewEmployee() {
-  //   runSearch();
-  console.log(filteredManagers);
-  console.log(rolesAndRolesIDs);
-  console.log(filteredManagerId)
-  var roles = []
-  rolesAndRolesIDs.forEach(element => {
-    roles.push(element.title)
-  });
-  inquirer
-    .prompt([
-      {
-        type: "list",
-        name: "title",
-        choices: [...roles],
-        message: "What is the employee's role?",
-      },
-      {
-        type: "input",
-        name: "first_name",
-        message: "what is the employee's first name?",
-        validate: async (input) => {
-          if (input == "" || /\s/.test(input)) {
-            return "Please enter first or last name.";
-          }
-          return true;
-        },
-      },
-      {
-        type: "input",
-        name: "last_name",
-        message: "what is the employee's last name?",
-        validate: async (input) => {
-          if (input == "" || /\s/.test(input)) {
-            return "Please enter first or last name.";
-          }
-          return true;
-        },
-      },
-      {
-        type: "list",
-        name: "manager",
-        choices: [...filteredManagers],
-        message: "Who is the employee's manager?",
-      },
-    ])
-    .then(function (answers) {
-      addEmployee(answers);
-    });
+async function getNewEmployee() {
+  var managers = await viewAllManagers();
+  var roles = await viewAllRoles();
+
+  // console.log(managers)
+  // console.log(roles)
+
+  await addEmployee(managers, roles);
 }
 
 // async function getRole() {
@@ -220,73 +185,84 @@ function getNewEmployee() {
 //   return [first_name.trim(), last_name];
 // }
 
-function viewAllManagers() {
-  query = `SELECT CONCAT(e2.first_name, " ", e2.last_name) 
+async function viewAllManagers() {
+  query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
         AS manager, e1.manager_id FROM employee AS e1
         LEFT JOIN employee as e2
         ON e1.manager_id = e2.role_id
         WHERE e1.manager_id is NOT NULL;`;
 
-  connection.query(query, function (err, res) {
-    // console.log(res)
-    var managers = res.map((array) => array.manager);
-    // console.log(managers)
+  return new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      var managersAndManagersID = [];
 
-    managers.push("null")
-    var managerId = res.map((array) => array.manager_id)
+      res.forEach((manager) => {
+        var object = {
+          manager: manager.manager,
+          id: manager.manager_id,
+        };
+        managersAndManagersID.push(object);
+      });
 
-    filteredManagerId = managerId.filter((element, index) => {
-      return managerId.indexOf(element) === index;
-    });
-    
-    filteredManagers = managers.filter((element, index) => {
-      return managers.indexOf(element) === index;
+      resolve(managersAndManagersID);
     });
   });
 }
 
-function viewAllRoles() {
+async function viewAllRoles() {
   query = `
     SELECT * FROM role
     `;
-  connection.query(query, function (err, res) {
-    rolesAndRolesIDs = res.map(({ id, title }) => ({ id, title }));
-    if(err) throw err;
+  return new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      rolesAndRolesIDs = res.map(({ id, title }) => ({ id, title }));
+      // console.log(rolesAndRolesIDs)
+      resolve(rolesAndRolesIDs);
+      if (err) throw err;
+    });
   });
 }
 
-// async function viewAllEmployees() {
-//   query = `
-//     SELECT e1.first_name, e1.last_name, title, salary, name
-//     as department, CONCAT(e2.first_name, " ", e2.last_name)
-//     AS manager FROM employee AS e1
-//     LEFT JOIN employee as e2
-//     ON e1.manager_id = e2.role_id
-//     INNER JOIN role
-//     ON e1.role_id = role.id
-//     INNER JOIN department
-//     ON role.department_id = department.id;
-//     `;
-//   rows = await connection.query(query);
-//   console.table(rows);
-//   runSearch();
-// }
+async function viewAllEmployees() {
+  query = `
+    SELECT e1.first_name, e1.last_name, title, salary, name
+    as department, CONCAT(e2.first_name, " ", e2.last_name)
+    AS manager FROM employee AS e1
+    LEFT JOIN employee as e2
+    ON e1.manager_id = e2.role_id
+    INNER JOIN role
+    ON e1.role_id = role.id
+    INNER JOIN department
+    ON role.department_id = department.id;
+    `;
 
-// async function viewAllEmployeesByDepartment() {
-//   query = `
-//     SELECT e1.first_name, e1.last_name, name
-//     as department FROM employee AS e1
-//     LEFT JOIN employee as e2
-//     ON e1.manager_id = e2.role_id
-//     INNER JOIN role
-//     ON e1.role_id = role.id
-//     INNER JOIN department
-//     ON role.department_id = department.id
-//     `;
-//   rows = await connection.query(query);
+  await new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      resolve(console.table(res));
+      runSearch();
+    });
+  });
+}
 
-//   console.table(rows);
-// }
+async function viewAllEmployeesByDepartment() {
+  query = `
+    SELECT e1.first_name, e1.last_name, name
+    as department FROM employee AS e1
+    LEFT JOIN employee as e2
+    ON e1.manager_id = e2.role_id
+    INNER JOIN role
+    ON e1.role_id = role.id
+    INNER JOIN department
+    ON role.department_id = department.id
+    `;
+
+  new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      resolve(console.table(res));
+      runSearch();
+    });
+  });
+}
 
 // async function viewAllDepartments() {
 //   query = `
@@ -322,30 +298,80 @@ function viewAllRoles() {
 //   runSearch();
 // }
 
-function addEmployee(employeeInfo) {
-  // let roleId = getRoleId(employeeInfo.title);
-  let roleId = rolesAndRolesIDs.filter(role => role.title === employeeInfo.title)
-  console.log(roleId)
-  // let managerId = getEmployeeId(employeeInfo.manager);
-  let managerIdIndex = filteredManagers.indexOf(employeeInfo.manager)
-  let managerId = filteredManagerId[managerIdIndex]
-  console.log(managerId)
+async function addEmployee(managers, roles) {
+  // console.log(managers)
+  var rolesArray = [];
+  roles.forEach((role) => {
+    rolesArray.push(role.title);
+  });
+
+  var roleIdArray = [];
+  roles.forEach((role) => {
+    roleIdArray.push(role.id);
+  });
+
+  var managersArray = [];
+  managers.forEach((manager) => {
+    managersArray.push(manager.manager);
+  });
+
+  var managerIdArrays = [];
+  managers.forEach((manager) => {
+    managerIdArrays.push(manager.id);
+  });
+
+  console.log(managerIdArrays);
+
+  var employee = await inquirer.prompt([
+    {
+      type: "list",
+      name: "title",
+      choices: [...rolesArray],
+      message: "What is the employee's role?",
+    },
+    {
+      type: "input",
+      name: "first_name",
+      message: "what is the employee's first name?",
+      validate: async (input) => {
+        if (input == "" || /\s/.test(input)) {
+          return "Please enter first or last name.";
+        }
+        return true;
+      },
+    },
+    {
+      type: "input",
+      name: "last_name",
+      message: "what is the employee's last name?",
+      validate: async (input) => {
+        if (input == "" || /\s/.test(input)) {
+          return "Please enter first or last name.";
+        }
+        return true;
+      },
+    },
+    {
+      type: "list",
+      name: "manager",
+      choices: [...managersArray],
+      message: "Who is the employee's manager?",
+    },
+  ]);
+
+  console.log(employee);
+
+  var roleId = roleIdArray[rolesArray.indexOf(employee.title)];
+  var managerId = managerIdArrays[managersArray.indexOf(employee.manager)];
 
   let query =
     "INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)";
-  let args = [
-    employeeInfo.first_name,
-    employeeInfo.last_name,
-    roleId[0].id,
-    managerId,
-  ];
+  let args = [employee.first_name, employee.last_name, roleId, managerId];
 
-  console.log(args)
+  console.log(args);
   connection.query(query, args);
 
-  console.log(
-    `Added employee ${employeeInfo.first_name} ${employeeInfo.last_name}.`
-  );
+  console.log(`Added employee ${employee.first_name} ${employee.last_name}.`);
   runSearch();
 }
 
@@ -358,8 +384,6 @@ function addEmployee(employeeInfo) {
 //   console.log(`added role ${roleInfo.title}, ${roleInfo.salary}`);
 //   runSearch();
 // }
-
-// runSearch();
 
 // async function viewEmployee() {
 //   query = `
@@ -403,6 +427,6 @@ function addEmployee(employeeInfo) {
 //   console.log(`Added employee ${roleId} ${employee[0]}.`);
 //   runSearch();
 // }
-viewAllManagers();
-viewAllRoles();
+// viewAllManagers();
+// viewAllRoles();
 runSearch();

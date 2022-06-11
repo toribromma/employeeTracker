@@ -18,6 +18,9 @@ const connection = mysql.createConnection({
 // let filteredManagerId = [];
 // let rolesAndRolesIDs = [];
 
+let departmentNames = [];
+let departmentIDs = [];
+
 pickOptions = [
   "View All Employees",
   "View All Employees by Department",
@@ -31,7 +34,7 @@ pickOptions = [
   "Remove Role",
   "Add Department",
   "Remove Department",
-  "View All Departments",
+  // "View All Departments",
   "Exit",
 ];
 
@@ -102,18 +105,59 @@ async function runSearch() {
       insertDepartment(value.department);
       break;
 
-    case "View All Departments":
-      viewAllDepartments();
-      break;
-    // case "Add Role":
-    //   const newRole = await getRole();
-    //   console.log(newRole);
-    //   await addRole(newRole);
+    // case "View All Departments":
+    //   getDepartmentNamess();
     //   break;
+    case "Add Role":
+      addRole();
+      //   console.log(newRole);
+      //   await addRole(newRole);
+      break;
     case "Exit":
       process.exit();
   }
   // });
+}
+
+async function addRole() {
+  let departments = await getDepartmentNames();
+  let ids = await getDepartmentIds();
+  console.log(departments);
+  console.log(ids);
+
+  var role = await inquirer.prompt([
+    {
+      type: "input",
+      name: "title",
+      message: "What role would you like to add?",
+    },
+    {
+      type: "input",
+      name: "salary",
+      message: "How much is the salary of the new role?",
+    },
+    {
+      type: "list",
+      name: "department",
+      choices: [...departments],
+      message: "What department does this role belong to?",
+    },
+  ]);
+
+  console.log(role);
+
+  var departmentId = ids[departments.indexOf(role.department)];
+  role.department = departmentId;
+
+  console.log(role);
+
+  let query = "INSERT into role (title, salary, department_id) VALUES (?,?,?)";
+  console.log(`added role ${role.title}, ${role.salary}`);
+
+  new Promise(function (resolve, reject) {
+    resolve(connection.query(query, [role.title, role.salary, role.department]));
+    runSearch();
+  });
 }
 
 async function getNewEmployee() {
@@ -126,39 +170,7 @@ async function getNewEmployee() {
   await addEmployee(managers, roles);
 }
 
-// async function getRole() {
-//   departments = await viewAllDepartments();
-//   return inquirer.prompt([
-//     {
-//       type: "input",
-//       name: "title",
-//       message: "What role would you like to add?",
-//     },
-//     {
-//       type: "input",
-//       name: "salary",
-//       message: "How much is the salary of the new role?",
-//     },
-//     {
-//       type: "list",
-//       name: "department",
-//       choices: [...departments],
-//       message: "What department does this role belong to?",
-//     },
-//   ]);
-// }
-
-// async function addRole(roleInfo) {
-//   let departmentId = await getDepartmentId(roleInfo.department);
-
-//   let query = "INSERT into role (title, salary, department_id) VALUES (?,?,?)";
-//   let args = [roleInfo.title, parseInt(roleInfo.salary), departmentId];
-//   const rows = await connection.query(query, args);
-//   console.log(`added role ${roleInfo.title}, ${roleInfo.salary}`);
-//   runSearch();
-// }
-
-// async function getRoleId(roleName) {
+// async function addRoleId(roleName) {
 //   let query = "SELECT * FROM role WHERE role.title=?";
 //   let args = [roleName];
 //   const rows = await connection.query(query, args);
@@ -172,13 +184,6 @@ async function getNewEmployee() {
 //   let args = [employee[0], employee[1]];
 //   const rows = await connection.query(query, args);
 //   return rows[0].role_id;
-// }
-
-// async function getDepartmentId(departmentName) {
-//   let query = "SELECT * FROM department where department.name=?";
-//   let args = [departmentName];
-//   const rows = await connection.query(query, args);
-//   return rows[0].id;
 // }
 
 // function getFirstAndLastName(fullName) {
@@ -279,15 +284,40 @@ async function viewAllEmployeesByDepartment() {
   });
 }
 
-async function viewAllDepartments() {
+async function getDepartmentNames() {
   query = `
-    SELECT name from department
+    SELECT name
+    FROM department
     `;
 
-  new Promise(function (resolve, reject) {
+  return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
-      resolve(console.table(res));
-      runSearch();
+      // console.log((res));
+
+      res.forEach((element) => {
+        departmentNames.push(element.name);
+      });
+
+      resolve(departmentNames);
+    });
+  });
+}
+
+async function getDepartmentIds() {
+  query = `
+    SELECT id
+    FROM department
+    `;
+
+  return new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      // console.log((res));
+
+      res.forEach((element) => {
+        departmentIDs.push(element.id);
+      });
+
+      resolve(departmentIDs);
     });
   });
 }
@@ -388,8 +418,6 @@ async function addEmployee(managers, roles) {
   runSearch();
 }
 
-
-
 // async function viewEmployee() {
 //   query = `
 //     SELECT CONCAT(first_name, " ", last_name)
@@ -423,7 +451,7 @@ async function addEmployee(managers, roles) {
 
 // async function updateEmployeeRole(employeeInfo) {
 //   let employee = await getFirstAndLastName(employeeInfo.employee);
-//   let roleId = await getRoleId(employeeInfo.title);
+//   let roleId = await addRoleId(employeeInfo.title);
 
 //   let query =
 //     "UPDATE employee SET role_id = ?, manager_id = ?  WHERE first_name = ? and last_name = ?";

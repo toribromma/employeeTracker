@@ -1,7 +1,7 @@
-const Database = require("./connection.js");
+// const Database = require("./connection.js");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
-const Employee = require("./class");
+const Employee = require("./lib/employee");
 const mysql = require("mysql");
 const { NULL } = require("mysql/lib/protocol/constants/types");
 require("dotenv").config();
@@ -17,9 +17,6 @@ const connection = mysql.createConnection({
 // let filteredManagers = [];
 // let filteredManagerId = [];
 // let rolesAndRolesIDs = [];
-
-let departmentNames = [];
-let departmentIDs = [];
 
 pickOptions = [
   "View All Employees",
@@ -52,7 +49,7 @@ async function runSearch() {
       break;
 
     case "View All Employees by Department":
-      await viewAllEmployeesByDepartment();
+      await getAllEmployeesByDepartment();
       break;
 
     // case "Remove Employee":
@@ -81,15 +78,15 @@ async function runSearch() {
     //   break;
 
     case "View All Employees":
-      await viewAllEmployees();
+      await getAllEmployees();
       break;
 
     case "View All Employees by Department":
-      await viewAllEmployeesByDepartment();
+      await getAllEmployeesByDepartment();
       break;
 
     case "View All Roles":
-      var roles = await viewAllRoles();
+      var roles = await getRoles();
       var rolesArray = [];
       roles.forEach((element) => {
         elementObject = { Role: element.title };
@@ -144,28 +141,23 @@ async function addRole() {
     },
   ]);
 
-  console.log(role);
-
   var departmentId = ids[departments.indexOf(role.department)];
   role.department = departmentId;
-
-  console.log(role);
 
   let query = "INSERT into role (title, salary, department_id) VALUES (?,?,?)";
   console.log(`added role ${role.title}, ${role.salary}`);
 
   new Promise(function (resolve, reject) {
-    resolve(connection.query(query, [role.title, role.salary, role.department]));
+    resolve(
+      connection.query(query, [role.title, role.salary, role.department])
+    );
     runSearch();
   });
 }
 
 async function getNewEmployee() {
-  var managers = await viewAllManagers();
-  var roles = await viewAllRoles();
-
-  // console.log(managers)
-  // console.log(roles)
+  var managers = await getManagers();
+  var roles = await getRoles();
 
   await addEmployee(managers, roles);
 }
@@ -196,7 +188,6 @@ async function getNewEmployee() {
 //   if (employee.length == 2) {
 //     return employee;
 //   }
-
 //   const last_name = employee[employee.length - 1];
 //   let first_name = " ";
 //   for (let i = 0; i < employee.length - 1; i++) {
@@ -205,7 +196,7 @@ async function getNewEmployee() {
 //   return [first_name.trim(), last_name];
 // }
 
-async function viewAllManagers() {
+async function getManagers() {
   query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
         AS manager, e1.manager_id FROM employee AS e1
         LEFT JOIN employee as e2
@@ -229,7 +220,7 @@ async function viewAllManagers() {
   });
 }
 
-async function viewAllRoles() {
+async function getRoles() {
   query = `
     SELECT * FROM role
     `;
@@ -243,7 +234,7 @@ async function viewAllRoles() {
   });
 }
 
-async function viewAllEmployees() {
+async function getAllEmployees() {
   query = `
     SELECT e1.first_name, e1.last_name, title, salary, name
     as department, CONCAT(e2.first_name, " ", e2.last_name)
@@ -264,7 +255,7 @@ async function viewAllEmployees() {
   });
 }
 
-async function viewAllEmployeesByDepartment() {
+async function getAllEmployeesByDepartment() {
   query = `
     SELECT e1.first_name, e1.last_name, name
     as department FROM employee AS e1
@@ -276,7 +267,7 @@ async function viewAllEmployeesByDepartment() {
     ON role.department_id = department.id
     `;
 
-  new Promise(function (resolve, reject) {
+  await new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
       resolve(console.table(res));
       runSearch();
@@ -292,7 +283,7 @@ async function getDepartmentNames() {
 
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
-      // console.log((res));
+      let departmentNames = [];
 
       res.forEach((element) => {
         departmentNames.push(element.name);
@@ -311,7 +302,7 @@ async function getDepartmentIds() {
 
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
-      // console.log((res));
+      let departmentIDs = [];
 
       res.forEach((element) => {
         departmentIDs.push(element.id);
@@ -432,7 +423,7 @@ async function addEmployee(managers, roles) {
 
 // async function getUpdateEmployeeRole() {
 //   employees = await viewEmployee();
-//   roles = await viewAllRoles();
+//   roles = await getRoles();
 //   return inquirer.prompt([
 //     {
 //       type: "list",
@@ -460,6 +451,5 @@ async function addEmployee(managers, roles) {
 //   console.log(`Added employee ${roleId} ${employee[0]}.`);
 //   runSearch();
 // }
-// viewAllManagers();
-// viewAllRoles();
+
 runSearch();

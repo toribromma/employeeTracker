@@ -2,17 +2,10 @@
 const inquirer = require("inquirer");
 const cTable = require("console.table");
 const Employee = require("./lib/employee");
-const mysql = require("mysql");
+const Role = require("./lib/role");
+const Department = require("./lib/department");
 const { NULL } = require("mysql/lib/protocol/constants/types");
-require("dotenv").config();
-
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-});
+const connection = require("./lib/connection")
 
 // let filteredManagers = [];
 // let filteredManagerId = [];
@@ -45,7 +38,7 @@ async function runSearch() {
 
   switch (answer.options) {
     case "Add Employee":
-      await getNewEmployee();
+      await getEmployee();
       break;
 
     case "View All Employees by Department":
@@ -97,9 +90,9 @@ async function runSearch() {
       break;
 
     case "Add Department":
-      value = await addDepartment();
-      console.log(value);
-      insertDepartment(value.department);
+      await getDepartment();
+      // console.log(value);
+  
       break;
 
     // case "View All Departments":
@@ -155,12 +148,94 @@ async function addRole() {
   });
 }
 
-async function getNewEmployee() {
+async function getEmployee() {
+
   var managers = await getManagers();
   var roles = await getRoles();
 
-  await addEmployee(managers, roles);
+  var rolesArray = [];
+  roles.forEach((role) => {
+  rolesArray.push(role.title);
+  });
+
+  var roleIdArray = [];
+  roles.forEach((role) => {
+  roleIdArray.push(role.id);
+  });
+
+  var managersArray = [];
+  managers.forEach((manager) => {
+  managersArray.push(manager.manager);
+  });
+
+  var managerIdArrays = [];
+  managers.forEach((manager) => {
+  managerIdArrays.push(manager.id);
+  });
+
+  console.log(managerIdArrays);
+
+  var employee = await inquirer.prompt([
+    {
+        type: "list",
+        name: "title",
+        choices: [...rolesArray],
+        message: "What is the employee's role?",
+    },
+    {
+        type: "input",
+        name: "first_name",
+        message: "what is the employee's first name?",
+        validate: async (input) => {
+        if (input == "" || /\s/.test(input)) {
+            return "Please enter first or last name.";
+        }
+        return true;
+        },
+    },
+    {
+        type: "input",
+        name: "last_name",
+        message: "what is the employee's last name?",
+        validate: async (input) => {
+        if (input == "" || /\s/.test(input)) {
+            return "Please enter first or last name.";
+        }
+        return true;
+        },
+    },
+    {
+        type: "list",
+        name: "manager",
+        choices: [...managersArray],
+        message: "Who is the  employee's manager?",
+    },
+    ]);
+
+    var roleId = await roleIdArray[rolesArray.indexOf(employee.title)];
+    var managerId = await managerIdArrays[managersArray.indexOf(employee.manager)];
+    
+    var newPerson = new Employee(employee.first_name, employee.last_name, roleId, managerId)
+
+  await newPerson.addEmployee();
+  await runSearch();
 }
+
+  async function getDepartment() {
+    value = await inquirer.prompt({
+      type: "input",
+      name: "department",
+      message: "What is the name of the department you wish to add?",
+    });
+
+    console.log(value.department)
+    let newDepartment = await new Department(value.department)
+    console.log(newDepartment)
+    await newDepartment.addDepartment();
+    await runSearch();
+
+
+  }
 
 // async function addRoleId(roleName) {
 //   let query = "SELECT * FROM role WHERE role.title=?";
@@ -313,101 +388,6 @@ async function getDepartmentIds() {
   });
 }
 
-async function addDepartment() {
-  value = await inquirer.prompt({
-    type: "input",
-    name: "department",
-    message: "What is the name of the department you wish to add?",
-  });
-  return value;
-}
-
-async function insertDepartment(value) {
-  query = "INSERT INTO department(name) VALUES(?)";
-
-  connection.query(query, value, function (err, res) {
-    if (err) throw err;
-    // console.log(res);
-  });
-  runSearch();
-}
-
-async function addEmployee(managers, roles) {
-  // console.log(managers)
-  var rolesArray = [];
-  roles.forEach((role) => {
-    rolesArray.push(role.title);
-  });
-
-  var roleIdArray = [];
-  roles.forEach((role) => {
-    roleIdArray.push(role.id);
-  });
-
-  var managersArray = [];
-  managers.forEach((manager) => {
-    managersArray.push(manager.manager);
-  });
-
-  var managerIdArrays = [];
-  managers.forEach((manager) => {
-    managerIdArrays.push(manager.id);
-  });
-
-  console.log(managerIdArrays);
-
-  var employee = await inquirer.prompt([
-    {
-      type: "list",
-      name: "title",
-      choices: [...rolesArray],
-      message: "What is the employee's role?",
-    },
-    {
-      type: "input",
-      name: "first_name",
-      message: "what is the employee's first name?",
-      validate: async (input) => {
-        if (input == "" || /\s/.test(input)) {
-          return "Please enter first or last name.";
-        }
-        return true;
-      },
-    },
-    {
-      type: "input",
-      name: "last_name",
-      message: "what is the employee's last name?",
-      validate: async (input) => {
-        if (input == "" || /\s/.test(input)) {
-          return "Please enter first or last name.";
-        }
-        return true;
-      },
-    },
-    {
-      type: "list",
-      name: "manager",
-      choices: [...managersArray],
-      message: "Who is the employee's manager?",
-    },
-  ]);
-
-  // console.log(employee);
-
-  var roleId = roleIdArray[rolesArray.indexOf(employee.title)];
-  var managerId = managerIdArrays[managersArray.indexOf(employee.manager)];
-
-  let query =
-    "INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)";
-  let args = [employee.first_name, employee.last_name, roleId, managerId];
-
-  console.log(args);
-  connection.query(query, args);
-
-  console.log(`Added employee ${employee.first_name} ${employee.last_name}.`);
-  runSearch();
-}
 
 // async function viewEmployee() {
 //   query = `

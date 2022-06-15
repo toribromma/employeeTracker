@@ -1,6 +1,6 @@
 # EmployeeTracker
 
-## Content Management System utilizing classes, ES6, async/await to generate a database where an employee can keep track of employees, departments, roles.
+## Content Management System utilizing classes, ES6, async/await to generate a database (MYSQL) where an employee can keep track of employees, departments, roles.
 
 ## Technologies used:
   * Node.js
@@ -9,7 +9,7 @@
  
 ## Design of database
 
-![alt text](https://uci.bootcampcontent.com/UCI-Coding-Bootcamp/UCI-IRV-FSF-PT-11-2019-U-C/-/raw/master/Curriculum/homework/week12/Assets/schema.png)
+![alt text](schema.png)
 
 ### How to start
 

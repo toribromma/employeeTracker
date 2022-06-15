@@ -7,7 +7,7 @@
   * NPM tools --- inquirer, console.table
   * MYSQL
  
-## Design of database
+## SCHEMA
 
 ![alt text](schema.png)
 

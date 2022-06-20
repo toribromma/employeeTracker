@@ -5,13 +5,9 @@ const Employee = require("./lib/employee");
 const Role = require("./lib/role");
 const Department = require("./lib/department");
 const { NULL } = require("mysql/lib/protocol/constants/types");
-const connection = require("./lib/connection")
+const connection = require("./lib/connection");
 
-// let filteredManagers = [];
-// let filteredManagerId = [];
-// let rolesAndRolesIDs = [];
-
-pickOptions = [
+let pickOptions = [
   "View All Employees",
   "View All Employees by Department",
   "View All Employees by Manager",
@@ -45,30 +41,34 @@ async function runSearch() {
       await getAllEmployeesByDepartment();
       break;
 
-    // case "Remove Employee":
-    //   console.log("In progress...");
-    //   break;
+    case "Remove Employee":
+      console.log("In progress...");
+      runSearch();
+      break;
 
-    // case "View All Employees by Manager":
-    //   console.log("In progress...");
-    //   break;
+    case "View All Employees by Manager":
+      console.log("In progress...");
+      runSearch();
+      break;
 
-    // case "Update Employee Role":
-    //   updatedEmployee = await getUpdateEmployeeRole();
-    //   updateEmployeeRole(updatedEmployee);
-    //   break;
+    case "Update Employee Role":
+      getEmployeeRole();
+      break;
 
-    // case "Update Employee Manager":
-    //   console.log("In progress...");
-    //   break;
+    case "Update Employee Manager":
+      console.log("In progress...");
+      runSearch();
+      break;
 
-    // case "Remove Role":
-    //   console.log("In progress...");
-    //   break;
+    case "Remove Role":
+      console.log("In progress...");
+      runSearch();
+      break;
 
-    // case "Remove Department":
-    //   console.log("In progress...");
-    //   break;
+    case "Remove Department":
+      console.log("In progress...");
+      runSearch();
+      break;
 
     case "View All Employees":
       await getAllEmployees();
@@ -79,20 +79,13 @@ async function runSearch() {
       break;
 
     case "View All Roles":
-      var roles = await getRoles();
-      var rolesArray = [];
-      roles.forEach((element) => {
-        elementObject = { Role: element.title };
-        rolesArray.push(elementObject);
-      });
-      console.table(rolesArray);
-      runSearch();
+      await viewAllRoles();
       break;
 
     case "Add Department":
       await getDepartment();
       // console.log(value);
-  
+
       break;
 
     // case "View All Departments":
@@ -100,8 +93,6 @@ async function runSearch() {
     //   break;
     case "Add Role":
       addRole();
-      //   console.log(newRole);
-      //   await addRole(newRole);
       break;
     case "Exit":
       process.exit();
@@ -141,135 +132,119 @@ async function addRole() {
   console.log(`added role ${role.title}, ${role.salary}`);
 
   new Promise(function (resolve, reject) {
+    if (err) {
+      return reject(err);
+    }
     resolve(
       connection.query(query, [role.title, role.salary, role.department])
     );
-    runSearch();
   });
+  runSearch();
 }
 
 async function getEmployee() {
-
   var managers = await getManagers();
   var roles = await getRoles();
 
   var rolesArray = [];
+  var roleIdArray = [];
+
   roles.forEach((role) => {
-  rolesArray.push(role.title);
+    rolesArray.push(role.title);
+    roleIdArray.push(role.id);
   });
 
-  var roleIdArray = [];
-  roles.forEach((role) => {
-  roleIdArray.push(role.id);
-  });
+  console.log(roleIdArray);
 
   var managersArray = [];
-  managers.forEach((manager) => {
-  managersArray.push(manager.manager);
-  });
-
   var managerIdArrays = [];
   managers.forEach((manager) => {
-  managerIdArrays.push(manager.id);
+    managersArray.push(manager.manager);
+    managerIdArrays.push(manager.id);
   });
 
   console.log(managerIdArrays);
-
   var employee = await inquirer.prompt([
     {
-        type: "list",
-        name: "title",
-        choices: [...rolesArray],
-        message: "What is the employee's role?",
+      type: "list",
+      name: "title",
+      choices: [...rolesArray],
+      message: "What is the employee's role?",
     },
     {
-        type: "input",
-        name: "first_name",
-        message: "what is the employee's first name?",
-        validate: async (input) => {
+      type: "input",
+      name: "first_name",
+      message: "what is the employee's first name?",
+      validate: async (input) => {
         if (input == "" || /\s/.test(input)) {
-            return "Please enter first or last name.";
+          return "Please enter first or last name.";
         }
         return true;
-        },
+      },
     },
     {
-        type: "input",
-        name: "last_name",
-        message: "what is the employee's last name?",
-        validate: async (input) => {
+      type: "input",
+      name: "last_name",
+      message: "what is the employee's last name?",
+      validate: async (input) => {
         if (input == "" || /\s/.test(input)) {
-            return "Please enter first or last name.";
+          return "Please enter first or last name.";
         }
         return true;
-        },
+      },
     },
     {
-        type: "list",
-        name: "manager",
-        choices: [...managersArray],
-        message: "Who is the  employee's manager?",
+      type: "list",
+      name: "manager",
+      choices: [...managersArray],
+      message: "Who is the  employee's manager?",
     },
-    ]);
+  ]);
 
-    var roleId = await roleIdArray[rolesArray.indexOf(employee.title)];
-    var managerId = await managerIdArrays[managersArray.indexOf(employee.manager)];
-    
-    var newPerson = new Employee(employee.first_name, employee.last_name, roleId, managerId)
+  var roleId = await roleIdArray[rolesArray.indexOf(employee.title)];
+  var managerId = await managerIdArrays[
+    managersArray.indexOf(employee.manager)
+  ];
+
+  var newPerson = new Employee(
+    employee.first_name,
+    employee.last_name,
+    roleId,
+    managerId
+  );
+
+  console.log(newPerson);
 
   await newPerson.addEmployee();
   await runSearch();
 }
 
-  async function getDepartment() {
-    value = await inquirer.prompt({
-      type: "input",
-      name: "department",
-      message: "What is the name of the department you wish to add?",
-    });
+async function getDepartment() {
+  value = await inquirer.prompt({
+    type: "input",
+    name: "department",
+    message: "What is the name of the department you wish to add?",
+  });
 
-    console.log(value.department)
-    let newDepartment = await new Department(value.department)
-    console.log(newDepartment)
-    await newDepartment.addDepartment();
-    await runSearch();
+  console.log(value.department);
+  let newDepartment = await new Department(value.department);
+  console.log(newDepartment);
+  await newDepartment.addDepartment();
+  await runSearch();
+}
 
-
+async function getFirstAndLastName(fullName) {
+  let employee = fullName.split(" ");
+  if (employee.length == 2) {
+    return employee;
   }
-
-// async function addRoleId(roleName) {
-//   let query = "SELECT * FROM role WHERE role.title=?";
-//   let args = [roleName];
-//   const rows = await connection.query(query, args);
-//   return rows[0].id;
-// }
-
-// async function getEmployeeId(fullName) {
-//   let employee = getFirstAndLastName(fullName);
-//   let query =
-//     "SELECT role_id FROM employee WHERE employee.first_name=? AND employee.last_name=?";
-//   let args = [employee[0], employee[1]];
-//   const rows = await connection.query(query, args);
-//   return rows[0].role_id;
-// }
-
-// function getFirstAndLastName(fullName) {
-//   // If a person has a space in their first name, such as "Mary Kay",
-//   // then first_name needs to ignore that first space.
-//   // Surnames generally do not have spaces in them so count the number
-//   // of elements in the array after the split and merge all before the last
-//   // element.
-//   let employee = fullName.split(" ");
-//   if (employee.length == 2) {
-//     return employee;
-//   }
-//   const last_name = employee[employee.length - 1];
-//   let first_name = " ";
-//   for (let i = 0; i < employee.length - 1; i++) {
-//     first_name = first_name + employee[i] + " ";
-//   }
-//   return [first_name.trim(), last_name];
-// }
+  const last_name = employee[employee.length - 1];
+  let first_name = " ";
+  for (let i = 0; i < employee.length - 1; i++) {
+    first_name = first_name + employee[i] + " ";
+  }
+  return [first_name.trim(), last_name];
+}
 
 async function getManagers() {
   query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
@@ -280,6 +255,10 @@ async function getManagers() {
 
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
+
       var managersAndManagersID = [];
 
       res.forEach((manager) => {
@@ -301,6 +280,10 @@ async function getRoles() {
     `;
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
+
       rolesAndRolesIDs = res.map(({ id, title }) => ({ id, title }));
       // console.log(rolesAndRolesIDs)
       resolve(rolesAndRolesIDs);
@@ -325,9 +308,9 @@ async function getAllEmployees() {
   await new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
       resolve(console.table(res));
-      runSearch();
     });
   });
+  runSearch();
 }
 
 async function getAllEmployeesByDepartment() {
@@ -344,10 +327,14 @@ async function getAllEmployeesByDepartment() {
 
   await new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
+
       resolve(console.table(res));
-      runSearch();
     });
   });
+  runSearch();
 }
 
 async function getDepartmentNames() {
@@ -358,6 +345,10 @@ async function getDepartmentNames() {
 
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
+
       let departmentNames = [];
 
       res.forEach((element) => {
@@ -377,6 +368,10 @@ async function getDepartmentIds() {
 
   return new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
+
       let departmentIDs = [];
 
       res.forEach((element) => {
@@ -388,48 +383,82 @@ async function getDepartmentIds() {
   });
 }
 
+async function getEmployeesNames() {
+  query = `
+    SELECT CONCAT(first_name, " ", last_name) as employee 
+    FROM employee`;
 
-// async function viewEmployee() {
-//   query = `
-//     SELECT CONCAT(first_name, " ", last_name)
-//     as employee FROM employee`;
-//   rows = await connection.query(query);
-//   employees = [];
-//   for (const name of rows) {
-//     employees.push(name.employee);
-//   }
-//   return employees;
-// }
+  return new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
 
-// async function getUpdateEmployeeRole() {
-//   employees = await viewEmployee();
-//   roles = await getRoles();
-//   return inquirer.prompt([
-//     {
-//       type: "list",
-//       name: "employee",
-//       choices: [...employees],
-//       message: "Whose role would you like to update?",
-//     },
-//     {
-//       type: "list",
-//       name: "title",
-//       choices: [...roles],
-//       message: "What role would you like to have for this employee?",
-//     },
-//   ]);
-// }
+      let employeesNames = [];
+      // console.log(res);
 
-// async function updateEmployeeRole(employeeInfo) {
-//   let employee = await getFirstAndLastName(employeeInfo.employee);
-//   let roleId = await addRoleId(employeeInfo.title);
+      res.forEach((element) => {
+        employeesNames.push(element.employee);
+      });
 
-//   let query =
-//     "UPDATE employee SET role_id = ?, manager_id = ?  WHERE first_name = ? and last_name = ?";
-//   let args = [roleId, null, employee[0], employee[1]];
-//   const rows = await connection.query(query, args);
-//   console.log(`Added employee ${roleId} ${employee[0]}.`);
-//   runSearch();
-// }
+      resolve(employeesNames);
+    });
+  });
+}
+
+async function getEmployeeRole() {
+  let employees = await getEmployeesNames();
+  console.log(employees);
+
+  let roles = await getRoles();
+  console.log(roles);
+
+  let roleNames = roles.map((roles) => roles.title);
+
+  console.log(roleNames);
+
+  let employee = await inquirer.prompt([
+    {
+      type: "list",
+      name: "name",
+      choices: [...employees],
+      message: "Whose role would you like to update?",
+    },
+    {
+      type: "list",
+      name: "title",
+      choices: [...roleNames],
+      message: "What role would you like to have for this employee?",
+    },
+  ]);
+
+  let firstAndLastNameArray = await getFirstAndLastName(employee.name);
+  console.log(firstAndLastNameArray);
+  console.log(employee.title);
+  let role = await roles.filter((role) => role.title === employee.title);
+  console.log(role);
+
+  let newEmployeeRole = await new Employee(
+    firstAndLastNameArray[0],
+    firstAndLastNameArray[1],
+    role[0].id,
+    null
+  );
+
+  console.log(newEmployeeRole);
+  await newEmployeeRole.updateEmployeeRole();
+  await runSearch();
+}
+
+async function viewAllRoles() {
+  let roles = await getRoles();
+  let rolesArray = [];
+  roles.forEach((element) => {
+    elementObject = { Role: element.title };
+    rolesArray.push(elementObject);
+  });
+  console.table(rolesArray);
+  runSearch();
+}
 
 runSearch();

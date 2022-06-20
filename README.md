@@ -23,7 +23,7 @@
    * Add/View Employee(s)
    * Add/View Department(s)
    * Add/View Roles
-   * Update employee roles (currently improving and is not active)
+   * Update employee roles
 
 
 ### Future Improvements

@@ -17,8 +17,7 @@ CREATE TABLE `role` (
   `department_id` int NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `department_id` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=u
-tf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `employee` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -43,7 +42,6 @@ INSERT INTO role (title, salary, department_id)
 Values ("Sales Lead", 100000, 1);
 INSERT INTO role (title, salary, department_id) 
 Values ("Sales Person", 80000, 1);
-
 
 INSERT INTO role (title, salary, department_id) 
 Values ("Lead Engineer", 150000, 2);

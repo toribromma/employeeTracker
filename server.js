@@ -56,8 +56,7 @@ async function runSearch() {
       break;
 
     case "Update Employee Manager":
-      console.log("In progress...");
-      runSearch();
+      updateEmployeeManager();
       break;
 
     case "Remove Role":
@@ -143,28 +142,14 @@ async function addRole() {
 }
 
 async function getEmployee() {
-  var managers = await getManagers();
-  var roles = await getRoles();
+  let managers = await getEmployeesNames();
+  console.log(managers)
+  let roles = await getRoles();
 
-  var rolesArray = [];
-  var roleIdArray = [];
-
-  roles.forEach((role) => {
-    rolesArray.push(role.title);
-    roleIdArray.push(role.id);
-  });
-
-  console.log(roleIdArray);
-
-  var managersArray = [];
-  var managerIdArrays = [];
-  managers.forEach((manager) => {
-    managersArray.push(manager.manager);
-    managerIdArrays.push(manager.id);
-  });
-
-  console.log(managerIdArrays);
-  var employee = await inquirer.prompt([
+  let rolesArray = roles.map((role) => role.title);
+  let roleIdArray = roles.map((role) => role.id);
+  
+  let employee = await inquirer.prompt([
     {
       type: "list",
       name: "title",
@@ -196,15 +181,13 @@ async function getEmployee() {
     {
       type: "list",
       name: "manager",
-      choices: [...managersArray],
+      choices: [...managers],
       message: "Who is the  employee's manager?",
     },
   ]);
 
   var roleId = await roleIdArray[rolesArray.indexOf(employee.title)];
-  var managerId = await managerIdArrays[
-    managersArray.indexOf(employee.manager)
-  ];
+  var managerId = await managers.indexOf(employee.manager) + 1;
 
   var newPerson = new Employee(
     employee.first_name,
@@ -246,32 +229,98 @@ async function getFirstAndLastName(fullName) {
   return [first_name.trim(), last_name];
 }
 
-async function getManagers() {
-  query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
-        AS manager, e1.manager_id FROM employee AS e1
-        LEFT JOIN employee as e2
-        ON e1.manager_id = e2.role_id
-        WHERE e1.manager_id is NOT NULL;`;
+// async function getManagers() {
+//   query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
+//         AS manager, e1.manager_id FROM employee AS e1
+//         LEFT JOIN employee as e2
+//         ON e1.manager_id = e2.role_id
+//         WHERE e1.manager_id is NOT NULL;`;
 
-  return new Promise(function (resolve, reject) {
+//   return new Promise(function (resolve, reject) {
+//     connection.query(query, function (err, res) {
+//       if (err) {
+//         return reject(err);
+//       }
+
+//       var managersAndManagersID = [];
+
+//       res.forEach((manager) => {
+//         var object = {
+//           manager: manager.manager,
+//           id: manager.manager_id,
+//         };
+//         managersAndManagersID.push(object);
+//       });
+
+//       resolve(managersAndManagersID);
+//     });
+//   });
+// }
+
+async function updateEmployeeManager() {
+  let employeesNames = await getEmployeesNames();
+  console.log(employeesNames);
+
+  var employee = await inquirer.prompt([
+    {
+      type: "list",
+      name: "name",
+      choices: [...employeesNames],
+      message: "Which employee do you want to update their manager?",
+    },
+    {
+      type: "list",
+      name: "manager",
+      choices: [...employeesNames],
+      message: "Who is their new manager?",
+    },
+  ]);
+
+  let employeeNameArray = await getFirstAndLastName(employee.name);
+  let managerNameArray = await getFirstAndLastName(employee.manager);
+
+  console.log(employeeNameArray);
+  console.log(managerNameArray);
+
+  let query = `SELECT *
+     FROM employee`;
+
+  let employeeData = await new Promise(function (resolve, reject) {
     connection.query(query, function (err, res) {
-      if (err) {
-        return reject(err);
-      }
-
-      var managersAndManagersID = [];
-
-      res.forEach((manager) => {
-        var object = {
-          manager: manager.manager,
-          id: manager.manager_id,
-        };
-        managersAndManagersID.push(object);
-      });
-
-      resolve(managersAndManagersID);
+      resolve(res);
     });
   });
+
+  // console.log(employeeData);
+
+  let employeeInfo  = employeeData.filter(
+    ({ first_name, last_name }) =>
+      first_name === employeeNameArray[0] || last_name === employeeNameArray[1]
+  );
+
+  console.log(employeeInfo);
+
+  let managerInfo = employeeData.filter(
+    ({ first_name, last_name }) =>
+      first_name === managerNameArray[0] || last_name === managerNameArray[1]
+  );
+
+  console.log(managerInfo);
+
+  let newEmployee = new Employee(
+    employeeInfo[0].first_name,
+    employeeInfo[0].last_name,
+    employeeInfo[0].role_id,
+    managerInfo[0].id,
+    employeeInfo[0].id
+  );
+
+  console.log(newEmployee)
+
+  newEmployee.updateEmployeeManager();
+
+  runSearch();
+
 }
 
 async function getRoles() {
@@ -298,7 +347,7 @@ async function getAllEmployees() {
     as department, CONCAT(e2.first_name, " ", e2.last_name)
     AS manager FROM employee AS e1
     LEFT JOIN employee as e2
-    ON e1.manager_id = e2.role_id
+    ON e1.manager_id = e2.id
     INNER JOIN role
     ON e1.role_id = role.id
     INNER JOIN department
@@ -385,7 +434,7 @@ async function getDepartmentIds() {
 
 async function getEmployeesNames() {
   query = `
-    SELECT CONCAT(first_name, " ", last_name) as employee 
+    SELECT CONCAT(first_name, " ", last_name) as employee
     FROM employee`;
 
   return new Promise(function (resolve, reject) {

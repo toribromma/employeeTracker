@@ -42,13 +42,11 @@ async function runSearch() {
       break;
 
     case "Remove Employee":
-      console.log("In progress...");
-      runSearch();
+      removeEmployee();
       break;
 
     case "View All Employees by Manager":
-      console.log("In progress...");
-      runSearch();
+      getManagers();
       break;
 
     case "Update Employee Role":
@@ -143,12 +141,14 @@ async function addRole() {
 
 async function getEmployee() {
   let managers = await getEmployeesNames();
-  console.log(managers)
+  let managersNames = managers.map((managers) => managers.employee);
+
+  console.log(managersNames);
   let roles = await getRoles();
 
   let rolesArray = roles.map((role) => role.title);
   let roleIdArray = roles.map((role) => role.id);
-  
+
   let employee = await inquirer.prompt([
     {
       type: "list",
@@ -181,13 +181,16 @@ async function getEmployee() {
     {
       type: "list",
       name: "manager",
-      choices: [...managers],
+      choices: [...managersNames],
       message: "Who is the  employee's manager?",
     },
   ]);
 
   var roleId = await roleIdArray[rolesArray.indexOf(employee.title)];
-  var managerId = await managers.indexOf(employee.manager) + 1;
+  var manager = managers.filter(
+    (manager) => manager.employee === employee.manager
+  );
+  var managerId = manager[0].id;
 
   var newPerson = new Employee(
     employee.first_name,
@@ -229,39 +232,54 @@ async function getFirstAndLastName(fullName) {
   return [first_name.trim(), last_name];
 }
 
-// async function getManagers() {
-//   query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name) 
-//         AS manager, e1.manager_id FROM employee AS e1
-//         LEFT JOIN employee as e2
-//         ON e1.manager_id = e2.role_id
-//         WHERE e1.manager_id is NOT NULL;`;
+async function getManagers() {
+  query = `SELECT DISTINCT CONCAT(e2.first_name, " ", e2.last_name)
+        AS manager, e1.manager_id FROM employee AS e1
+        LEFT JOIN employee as e2
+        ON e1.manager_id = e2.id
+        WHERE e1.manager_id is NOT NULL;`;
 
-//   return new Promise(function (resolve, reject) {
-//     connection.query(query, function (err, res) {
-//       if (err) {
-//         return reject(err);
-//       }
+  let managers = await new Promise(function (resolve, reject) {
+    connection.query(query, function (err, res) {
+      if (err) {
+        return reject(err);
+      }
 
-//       var managersAndManagersID = [];
+      resolve(res);
+    });
+  });
+  console.log(managers);
+  let managersNames = managers.map((manager) => manager.manager);
 
-//       res.forEach((manager) => {
-//         var object = {
-//           manager: manager.manager,
-//           id: manager.manager_id,
-//         };
-//         managersAndManagersID.push(object);
-//       });
+  let employee = await inquirer.prompt([
+    {
+      type: "list",
+      name: "name",
+      choices: [...managersNames],
+      message: "Which manager's employees do you want to look up?",
+    },
+  ]);
 
-//       resolve(managersAndManagersID);
-//     });
-//   });
-// }
+  let { name } = employee;
+
+  let manager = managers.filter((manager) => manager.manager === name);
+
+  // console.log(manager)
+
+  let newEmployee = new Employee(null, null, null, manager[0].manager_id, null);
+
+  // console.log(newEmployee)
+
+  await newEmployee.getEmployeeByManager();
+  await runSearch();
+}
 
 async function updateEmployeeManager() {
-  let employeesNames = await getEmployeesNames();
+  let employees = await getEmployeesNames();
+  let employeesNames = employees.map((employee) => employee.employee);
   console.log(employeesNames);
 
-  var employee = await inquirer.prompt([
+  let employee = await inquirer.prompt([
     {
       type: "list",
       name: "name",
@@ -291,9 +309,7 @@ async function updateEmployeeManager() {
     });
   });
 
-  // console.log(employeeData);
-
-  let employeeInfo  = employeeData.filter(
+  let employeeInfo = employeeData.filter(
     ({ first_name, last_name }) =>
       first_name === employeeNameArray[0] || last_name === employeeNameArray[1]
   );
@@ -315,12 +331,11 @@ async function updateEmployeeManager() {
     employeeInfo[0].id
   );
 
-  console.log(newEmployee)
+  console.log(newEmployee);
 
   newEmployee.updateEmployeeManager();
 
   runSearch();
-
 }
 
 async function getRoles() {
@@ -434,7 +449,7 @@ async function getDepartmentIds() {
 
 async function getEmployeesNames() {
   query = `
-    SELECT CONCAT(first_name, " ", last_name) as employee
+    SELECT CONCAT(first_name, " ", last_name) as employee, id
     FROM employee`;
 
   return new Promise(function (resolve, reject) {
@@ -442,21 +457,14 @@ async function getEmployeesNames() {
       if (err) {
         return reject(err);
       }
-
-      let employeesNames = [];
-      // console.log(res);
-
-      res.forEach((element) => {
-        employeesNames.push(element.employee);
-      });
-
-      resolve(employeesNames);
+      resolve(res);
     });
   });
 }
 
 async function getEmployeeRole() {
   let employees = await getEmployeesNames();
+  let employeeNames = employees.map((employee) => employee.employee);
   console.log(employees);
 
   let roles = await getRoles();
@@ -470,7 +478,7 @@ async function getEmployeeRole() {
     {
       type: "list",
       name: "name",
-      choices: [...employees],
+      choices: [...employeeNames],
       message: "Whose role would you like to update?",
     },
     {
@@ -507,6 +515,51 @@ async function viewAllRoles() {
     rolesArray.push(elementObject);
   });
   console.table(rolesArray);
+  runSearch();
+}
+
+async function removeEmployee() {
+  let employees = await getEmployeesNames();
+  let employeeNames = employees.map((employee) => employee.employee);
+  console.log(employees);
+
+  let employee = await inquirer.prompt([
+    {
+      type: "list",
+      name: "name",
+      choices: [...employeeNames],
+      message: "Which employee would you like to remove?",
+    },
+  ]);
+
+  console.log(employee.name);
+
+  var employeeInfo = employees.filter(
+    (element) => element.employee === employee.name
+  );
+  console.log(employeeInfo);
+  var employeeId = employeeInfo[0].id;
+  console.log(employeeId);
+
+  try {
+    let query = `DELETE FROM employee
+    WHERE id = ?;`;
+
+    let query2 = `
+    UPDATE employee 
+    SET manager_id = null
+    WHERE manager_id = ?;`;
+
+    console.log(query);
+    console.log(employeeId);
+    connection.query(query, [employeeId]);
+    connection.query(query2, [employeeId]);
+
+    console.log("hi");
+  } catch (error) {
+    console.log(err);
+  }
+
   runSearch();
 }
 
